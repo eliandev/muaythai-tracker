@@ -143,4 +143,12 @@ service cloud.firestore {
 | Data not persisting after refresh | Check the top bar for Firebase/Local indicator. If it says Local, your Firebase config may have been cleared |
 | Red toast on every save | Open browser console (F12) to see the full error |
 | Test mode expired | Update Firestore rules to extend or remove the expiration |
-| App shows setup screen after it was working | Firebase config was cleared. Paste it again |
+| App shows setup screen after it was working | Firebase config was cleared. Paste it again 
+
+## Contributing
+
+Contributions are welcome. Feel free to open an Issue or submit a Pull Request.
+
+## License
+
+MIT License.
