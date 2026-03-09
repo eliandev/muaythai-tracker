@@ -1,557 +1,965 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Muay Thai Transformation Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-deep: #080808;
-    --bg-card: #111111;
-    --bg-card-hover: #181818;
-    --bg-input: #1a1a1a;
-    --border: #222222;
-    --border-focus: #dc2626;
-    --red: #dc2626;
-    --red-dim: #991b1b;
-    --red-glow: rgba(220,38,38,0.15);
-    --amber: #f59e0b;
-    --amber-dim: rgba(245,158,11,0.15);
-    --green: #22c55e;
-    --green-dim: rgba(34,197,94,0.15);
-    --text: #e5e5e5;
-    --text-dim: #737373;
-    --text-muted: #525252;
-    --white: #fafafa;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Barlow', sans-serif;
-    background: var(--bg-deep);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Subtle grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  h1, h2, h3, h4 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-  /* ─── SETUP SCREEN ─── */
-  #setup-screen {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .setup-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 3rem;
-    max-width: 520px;
-    width: 100%;
-    text-align: center;
-  }
-
-  .setup-box h1 {
-    font-size: 2.5rem;
-    color: var(--white);
-    margin-bottom: 0.25rem;
-  }
-
-  .setup-box .accent-line {
-    width: 60px;
-    height: 3px;
-    background: var(--red);
-    margin: 0.75rem auto 1.5rem;
-  }
-
-  .setup-box p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem; }
-
-  .setup-box textarea {
-    width: 100%;
-    min-height: 160px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'Courier New', monospace;
-    font-size: 0.8rem;
-    padding: 1rem;
-    resize: vertical;
-    margin-bottom: 1rem;
-    transition: border-color 0.2s;
-  }
-
-  .setup-box textarea:focus { outline: none; border-color: var(--red); }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 2rem;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.15rem;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-primary {
-    background: var(--red);
-    color: #fff;
-  }
-  .btn-primary:hover { background: #ef4444; transform: translateY(-1px); }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
-
-  .btn-sm { padding: 0.5rem 1rem; font-size: 1rem; }
-
-  .error-msg { color: var(--red); font-size: 0.85rem; margin-top: 0.5rem; }
-
-  /* ─── MAIN APP ─── */
-  #app { display: none; position: relative; z-index: 1; }
-
-  /* Top bar */
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(8,8,8,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 1.5rem;
-  }
-
-  .topbar-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 60px;
-  }
-
-  .topbar-brand {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.4rem;
-    color: var(--white);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .topbar-brand span { color: var(--red); }
-
-  .topbar-week {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    background: var(--bg-input);
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-  }
-
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 0;
-    background: rgba(8,8,8,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 1.5rem;
-    overflow-x: auto;
-    position: sticky;
-    top: 60px;
-    z-index: 99;
-  }
-
-  .tabs::-webkit-scrollbar { display: none; }
-
-  .tab {
-    padding: 0.85rem 1.25rem;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 0.06em;
-    color: var(--text-dim);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    transition: all 0.2s;
-    background: none;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-  }
-
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--red); border-bottom-color: var(--red); }
-
-  /* Content area */
-  .content {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-  }
-
-  .section { display: none; }
-  .section.active { display: block; animation: fadeIn 0.3s ease; }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-  /* Cards */
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    transition: border-color 0.2s;
-  }
-
-  .card:hover { border-color: #333; }
-
-  .card-title {
-    font-size: 1.4rem;
-    color: var(--white);
-    margin-bottom: 0.25rem;
-  }
-
-  .card-subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem; }
-
-  /* Grid */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
-
-  @media (max-width: 768px) {
-    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  }
-
-  /* Stat boxes */
-  .stat-box {
-    background: var(--bg-input);
-    border-radius: 8px;
-    padding: 1.25rem;
-    text-align: center;
-  }
-
-  .stat-box .stat-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2rem;
-    color: var(--white);
-  }
-
-  .stat-box .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
-
-  .stat-box.red .stat-value { color: var(--red); }
-  .stat-box.amber .stat-value { color: var(--amber); }
-  .stat-box.green .stat-value { color: var(--green); }
-
-  /* Checklist */
-  .checklist { display: flex; flex-direction: column; gap: 0.5rem; }
-
-  .check-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    background: var(--bg-input);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-  }
-
-  .check-item:hover { background: var(--bg-card-hover); }
-
-  .check-item.checked {
-    background: var(--red-glow);
-  }
-
-  .check-item.checked .check-box {
-    background: var(--red);
-    border-color: var(--red);
-  }
-
-  .check-item.checked .check-box::after {
-    content: '✓';
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-
-  .check-box {
-    width: 22px;
-    height: 22px;
-    border-radius: 5px;
-    border: 2px solid #333;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-
-  .check-label { font-size: 0.9rem; color: var(--text); }
-  .check-item.checked .check-label { color: var(--text-dim); }
-
-  /* Form inputs */
-  .form-group { margin-bottom: 1rem; }
-  .form-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.4rem;
-    font-weight: 500;
-  }
-
-  .form-input, .form-textarea, .form-select {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.9rem;
-    transition: border-color 0.2s;
-  }
-
-  .form-input:focus, .form-textarea:focus, .form-select:focus {
-    outline: none;
-    border-color: var(--red);
-  }
-
-  .form-textarea { min-height: 80px; resize: vertical; }
-  .form-select { cursor: pointer; }
-
-  /* Range slider */
-  .range-group { display: flex; align-items: center; gap: 1rem; }
-  .range-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem;
-    color: var(--red);
-    min-width: 32px;
-    text-align: center;
-  }
-
-  input[type="range"] {
-    flex: 1;
-    -webkit-appearance: none;
-    height: 6px;
-    background: var(--bg-input);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--red);
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #fff;
-  }
-
-  /* Day selector pills */
-  .day-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-
-  .day-pill {
-    padding: 0.5rem 1rem;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.95rem;
-    letter-spacing: 0.04em;
-    border-radius: 20px;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-dim);
-    transition: all 0.2s;
-  }
-
-  .day-pill:hover { border-color: #444; color: var(--text); }
-  .day-pill.active { background: var(--red); border-color: var(--red); color: #fff; }
-
-  .day-pill.has-data { border-color: var(--green); }
-  .day-pill.has-data::after { content: ' ●'; color: var(--green); font-size: 0.6rem; }
-
-  /* Progress bar */
-  .progress-bar { height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--red); border-radius: 4px; transition: width 0.5s ease; }
-  .progress-fill.green { background: var(--green); }
-  .progress-fill.amber { background: var(--amber); }
-
-  /* Week selector */
-  .week-nav {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .week-nav button {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .week-nav button:hover { border-color: var(--red); color: var(--red); }
-  .week-nav .week-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: var(--white); }
-
-  /* Habit grid for the week */
-  .habit-week-grid {
-    display: grid;
-    grid-template-columns: 180px repeat(7, 1fr);
-    gap: 2px;
-    font-size: 0.8rem;
-  }
-
-  .habit-week-grid .hw-header {
-    padding: 0.5rem;
-    text-align: center;
-    font-family: 'Bebas Neue', sans-serif;
-    color: var(--text-dim);
-    font-size: 0.9rem;
-  }
-
-  .habit-week-grid .hw-label {
-    padding: 0.65rem 0.5rem;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-  }
-
-  .habit-week-grid .hw-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-radius: 6px;
-    background: var(--bg-input);
-    transition: all 0.15s;
-  }
-
-  .habit-week-grid .hw-cell:hover { background: var(--bg-card-hover); }
-  .habit-week-grid .hw-cell.checked { background: var(--red-glow); }
-  .habit-week-grid .hw-cell.checked::after { content: '✓'; color: var(--red); font-weight: 700; }
-
-  /* Water tracker */
-  .water-glasses {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .water-glass {
-    width: 44px;
-    height: 56px;
-    border-radius: 4px 4px 8px 8px;
-    border: 2px solid #333;
-    cursor: pointer;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .water-glass.filled { border-color: #0ea5e9; }
-  .water-glass.filled::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 80%;
-    background: linear-gradient(to top, #0369a1, #38bdf8);
-    border-radius: 0 0 6px 6px;
-    animation: fillUp 0.3s ease;
-  }
-
-  @keyframes fillUp { from { height: 0; } to { height: 80%; } }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--bg-card);
-    border: 1px solid var(--green);
-    color: var(--green);
-    padding: 0.85rem 1.5rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    z-index: 1000;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s;
-    pointer-events: none;
-  }
-
-  .toast.show { opacity: 1; transform: translateY(0); }
-
-  /* Responsive */
-  @media (max-width: 600px) {
-    .topbar-inner { padding: 0; }
-    .content { padding: 1.25rem 1rem; }
-    .card { padding: 1.25rem; }
-    .habit-week-grid { grid-template-columns: 120px repeat(7, 1fr); font-size: 0.7rem; }
-    .setup-box { padding: 2rem 1.5rem; }
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg-deep); }
-  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muay Thai Transformation Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #080808;
+      --bg-card: #111111;
+      --bg-card-hover: #181818;
+      --bg-input: #1a1a1a;
+      --border: #222222;
+      --border-focus: #dc2626;
+      --red: #dc2626;
+      --red-dim: #991b1b;
+      --red-glow: rgba(220, 38, 38, 0.15);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --text: #e5e5e5;
+      --text-dim: #737373;
+      --text-muted: #525252;
+      --white: #fafafa;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    /* ─── SETUP SCREEN ─── */
+    #setup-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .setup-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3rem;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .setup-box h1 {
+      font-size: 2.5rem;
+      color: var(--white);
+      margin-bottom: 0.25rem;
+    }
+
+    .setup-box .accent-line {
+      width: 60px;
+      height: 3px;
+      background: var(--red);
+      margin: 0.75rem auto 1.5rem;
+    }
+
+    .setup-box p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .setup-box textarea {
+      width: 100%;
+      min-height: 160px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      padding: 1rem;
+      resize: vertical;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .setup-box textarea:focus {
+      outline: none;
+      border-color: var(--red);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #ef4444;
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
+
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+
+    .error-msg {
+      color: var(--red);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    .error-msg code {
+      font-size: 0.78rem;
+      color: var(--text);
+    }
+
+    /* ─── MAIN APP ─── */
+    #app {
+      display: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Top bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 8, 8, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+    }
+
+    .topbar-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+
+    .topbar-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .topbar-brand span {
+      color: var(--red);
+    }
+
+    .topbar-week {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      background: var(--bg-input);
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: rgba(8, 8, 8, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      overflow-x: auto;
+      position: sticky;
+      top: 60px;
+      z-index: 99;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      padding: 0.85rem 1.25rem;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.active {
+      color: var(--red);
+      border-bottom-color: var(--red);
+    }
+
+    /* Content area */
+    .content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: #333;
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      color: var(--white);
+      margin-bottom: 0.25rem;
+    }
+
+    .card-subtitle {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Stat boxes */
+    .stat-box {
+      background: var(--bg-input);
+      border-radius: 8px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .stat-box .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--white);
+    }
+
+    .stat-box .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+
+    .stat-box.red .stat-value {
+      color: var(--red);
+    }
+
+    .stat-box.amber .stat-value {
+      color: var(--amber);
+    }
+
+    .stat-box.green .stat-value {
+      color: var(--green);
+    }
+
+    /* Checklist */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg-input);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .check-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .check-item.checked {
+      background: var(--red-glow);
+    }
+
+    .check-item.checked .check-box {
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    .check-item.checked .check-box::after {
+      content: '✓';
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .check-box {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .check-label {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .check-item.checked .check-label {
+      color: var(--text-dim);
+    }
+
+    /* Form inputs */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--red);
+    }
+
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-select {
+      cursor: pointer;
+    }
+
+    /* Range slider */
+    .range-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .range-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--red);
+      min-width: 32px;
+      text-align: center;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      background: var(--bg-input);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--red);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+
+    /* Day selector pills */
+    .day-pills {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .day-pill {
+      padding: 0.5rem 1rem;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      border-radius: 20px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+
+    .day-pill:hover {
+      border-color: #444;
+      color: var(--text);
+    }
+
+    .day-pill.active {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+
+    .day-pill.has-data {
+      border-color: var(--green);
+    }
+
+    .day-pill.has-data::after {
+      content: ' ●';
+      color: var(--green);
+      font-size: 0.6rem;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-input);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--red);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill.green {
+      background: var(--green);
+    }
+
+    .progress-fill.amber {
+      background: var(--amber);
+    }
+
+    /* Week selector */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .week-nav button {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .week-nav button:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .week-nav .week-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      color: var(--white);
+    }
+
+    /* Habit grid for the week */
+    .habit-week-grid {
+      display: grid;
+      grid-template-columns: 180px repeat(7, 1fr);
+      gap: 2px;
+      font-size: 0.8rem;
+    }
+
+    .habit-week-grid .hw-header {
+      padding: 0.5rem;
+      text-align: center;
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    .habit-week-grid .hw-label {
+      padding: 0.65rem 0.5rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+    }
+
+    .habit-week-grid .hw-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 6px;
+      background: var(--bg-input);
+      transition: all 0.15s;
+    }
+
+    .habit-week-grid .hw-cell:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .habit-week-grid .hw-cell.checked {
+      background: var(--red-glow);
+    }
+
+    .habit-week-grid .hw-cell.checked::after {
+      content: '✓';
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    /* Water tracker */
+    .water-glasses {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .water-glass {
+      width: 44px;
+      height: 56px;
+      border-radius: 4px 4px 8px 8px;
+      border: 2px solid #333;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .water-glass.filled {
+      border-color: #0ea5e9;
+    }
+
+    .water-glass.filled::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80%;
+      background: linear-gradient(to top, #0369a1, #38bdf8);
+      border-radius: 0 0 6px 6px;
+      animation: fillUp 0.3s ease;
+    }
+
+    @keyframes fillUp {
+      from {
+        height: 0;
+      }
+
+      to {
+        height: 80%;
+      }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 0.85rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .topbar-inner {
+        padding: 0;
+      }
+
+      .content {
+        padding: 1.25rem 1rem;
+      }
+
+      .card {
+        padding: 1.25rem;
+      }
+
+      .habit-week-grid {
+        grid-template-columns: 120px repeat(7, 1fr);
+        font-size: 0.7rem;
+      }
+
+      .setup-box {
+        padding: 2rem 1.5rem;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+
+    /* Photo upload cards */
+    .photo-uploads {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .photo-uploads {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .photo-slot {
+      background: var(--bg-input);
+      border: 2px dashed #333;
+      border-radius: 10px;
+      aspect-ratio: 3/4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-slot:hover {
+      border-color: var(--red);
+    }
+
+    .photo-slot.has-photo {
+      border-style: solid;
+      border-color: var(--green);
+    }
+
+    .photo-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .photo-slot .photo-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      border-radius: 8px;
+    }
+
+    .photo-slot:hover .photo-overlay {
+      opacity: 1;
+    }
+
+    .photo-slot .photo-placeholder {
+      color: var(--text-muted);
+      text-align: center;
+      font-size: 0.85rem;
+      padding: 1rem;
+    }
+
+    .photo-slot .photo-placeholder .photo-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .photo-slot .photo-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.4rem;
+      background: rgba(0, 0, 0, 0.7);
+      text-align: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.85rem;
+      color: var(--white);
+      letter-spacing: 0.05em;
+      border-radius: 0 0 8px 8px;
+      z-index: 2;
+    }
+
+    .photo-uploading {
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 8, 8, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 5;
+    }
+
+    .photo-uploading .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Photo gallery in progress tab */
+    .photo-gallery-week {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .photo-gallery-week {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.35rem;
+      }
+    }
+
+    .photo-gallery-week img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .photo-gallery-empty {
+      aspect-ratio: 3/4;
+      background: var(--bg-input);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- SETUP SCREEN -->
-<div id="setup-screen">
-  <div class="setup-box">
-    <h1>MUAY THAI<br>TRANSFORMATION</h1>
-    <div class="accent-line"></div>
-    <p>Connect your Firebase Firestore to persist your training data across sessions. Paste your Firebase config object below.</p>
-    <textarea id="firebase-config" placeholder='{
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen">
+    <div class="setup-box">
+      <h1>MUAY THAI<br>TRANSFORMATION</h1>
+      <div class="accent-line"></div>
+      <p>Connect your Firebase Firestore to persist your training data across sessions. Paste your Firebase config
+        object below.</p>
+      <textarea id="firebase-config" placeholder='{
   "apiKey": "AIza...",
   "authDomain": "your-project.firebaseapp.com",
   "projectId": "your-project-id",
@@ -559,887 +967,1156 @@
   "messagingSenderId": "123456789",
   "appId": "1:123456789:web:abc123"
 }'></textarea>
-    <div id="setup-error" class="error-msg" style="display:none;"></div>
-    <div style="display:flex;flex-direction:column;gap:0.75rem;align-items:center;margin-top:0.5rem;">
-      <button class="btn btn-primary" onclick="connectFirebase()">CONNECT & START</button>
-      <button class="btn btn-ghost btn-sm" onclick="startLocal()">Use Local Storage Instead</button>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN APP -->
-<div id="app">
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="topbar-brand">🥊 MUAY THAI <span>TRACKER</span></div>
-      <div class="topbar-week" id="current-week-badge">WEEK 1 OF 12</div>
+      <div id="setup-error" class="error-msg" style="display:none;"></div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;align-items:center;margin-top:0.5rem;">
+        <button class="btn btn-primary" onclick="connectFirebase()">CONNECT & START</button>
+        <button class="btn btn-ghost btn-sm" onclick="startLocal()">Use Local Storage Instead</button>
+      </div>
     </div>
   </div>
 
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="training">Training</button>
-    <button class="tab" data-tab="habits">Habits</button>
-    <button class="tab" data-tab="nutrition">Nutrition</button>
-    <button class="tab" data-tab="review">Weekly Review</button>
-    <button class="tab" data-tab="progress">Progress</button>
-  </div>
-
-  <div class="content">
-
-    <!-- ═══ DASHBOARD ═══ -->
-    <div id="sec-dashboard" class="section active">
-      <div class="week-nav">
-        <button onclick="changeWeek(-1)">‹</button>
-        <span class="week-label" id="dash-week-label">WEEK 1</span>
-        <button onclick="changeWeek(1)">›</button>
-      </div>
-
-      <div class="grid-4" id="dash-stats">
-        <div class="stat-box red"><div class="stat-value" id="s-sessions">0/5</div><div class="stat-label">Sessions</div></div>
-        <div class="stat-box green"><div class="stat-value" id="s-habits">0%</div><div class="stat-label">Habits</div></div>
-        <div class="stat-box amber"><div class="stat-value" id="s-water">0</div><div class="stat-label">Water Days</div></div>
-        <div class="stat-box"><div class="stat-value" id="s-discipline">—</div><div class="stat-label">Discipline</div></div>
-      </div>
-
-      <div class="card" style="margin-top:1rem;">
-        <h3 class="card-title">THIS WEEK'S FOCUS</h3>
-        <div class="card-subtitle" id="dash-dates"></div>
-        <div class="checklist" id="dash-focus-list"></div>
-      </div>
-
-      <div class="grid-2" style="margin-top:1rem;">
-        <div class="card">
-          <h3 class="card-title">TRAINING SCHEDULE</h3>
-          <div id="dash-schedule"></div>
-        </div>
-        <div class="card">
-          <h3 class="card-title">QUICK NOTE</h3>
-          <div class="form-group">
-            <textarea class="form-textarea" id="dash-note" placeholder="How are you feeling this week?"></textarea>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="saveDashNote()">SAVE NOTE</button>
+  <!-- MAIN APP -->
+  <div id="app">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-brand">🥊 MUAY THAI <span>TRACKER</span></div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div id="fb-status" style="font-size:0.75rem;display:flex;align-items:center;gap:0.35rem;"></div>
+          <div class="topbar-week" id="current-week-badge">WEEK 1 OF 12</div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ TRAINING ═══ -->
-    <div id="sec-training" class="section">
-      <div class="day-pills" id="training-days"></div>
-      <div id="training-content"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="training">Training</button>
+      <button class="tab" data-tab="habits">Habits</button>
+      <button class="tab" data-tab="nutrition">Nutrition</button>
+      <button class="tab" data-tab="review">Weekly Review</button>
+      <button class="tab" data-tab="progress">Progress</button>
     </div>
 
-    <!-- ═══ HABITS ═══ -->
-    <div id="sec-habits" class="section">
-      <div class="card">
-        <h3 class="card-title">DAILY HABIT TRACKER</h3>
-        <div class="card-subtitle">Toggle each habit for each day of the week</div>
-        <div class="habit-week-grid" id="habit-grid"></div>
-      </div>
-      <div class="card" style="margin-top:1rem;">
-        <h3 class="card-title">WATER TRACKER — TODAY</h3>
-        <div class="card-subtitle">Tap glasses to log water intake (each glass ≈ 250ml)</div>
-        <div class="water-glasses" id="water-glasses"></div>
-        <div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-dim);">
-          Total: <strong id="water-total" style="color:var(--white);">0ml</strong> / goal: 2000ml+
+    <div class="content">
+
+      <!-- ═══ DASHBOARD ═══ -->
+      <div id="sec-dashboard" class="section active">
+        <div class="week-nav">
+          <button onclick="changeWeek(-1)">‹</button>
+          <span class="week-label" id="dash-week-label">WEEK 1</span>
+          <button onclick="changeWeek(1)">›</button>
         </div>
-      </div>
-    </div>
 
-    <!-- ═══ NUTRITION ═══ -->
-    <div id="sec-nutrition" class="section">
-      <div class="day-pills" id="nutrition-days"></div>
-      <div class="card" id="nutrition-content">
-        <h3 class="card-title">FOOD DISCIPLINE — <span id="nutri-day-label">TODAY</span></h3>
-        <div class="checklist" id="nutri-checklist"></div>
-        <div style="margin-top:1.5rem;">
-          <h4 style="font-size:1.1rem;color:var(--white);margin-bottom:0.75rem;">DAILY REFLECTION</h4>
-          <div class="form-group">
-            <label class="form-label">Did I eat less than usual?</label>
-            <select class="form-select" id="nutri-less"><option value="">—</option><option>Yes</option><option>Mostly</option><option>No</option></select>
+        <div class="grid-4" id="dash-stats">
+          <div class="stat-box red">
+            <div class="stat-value" id="s-sessions">0/5</div>
+            <div class="stat-label">Sessions</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Did I lose control with food?</label>
-            <select class="form-select" id="nutri-control"><option value="">—</option><option>No</option><option>A little</option><option>Yes</option></select>
+          <div class="stat-box green">
+            <div class="stat-value" id="s-habits">0%</div>
+            <div class="stat-label">Habits</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">What triggered it?</label>
-            <input class="form-input" id="nutri-trigger" placeholder="Stress, boredom, habit...">
+          <div class="stat-box amber">
+            <div class="stat-value" id="s-water">0</div>
+            <div class="stat-label">Water Days</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">What can I improve tomorrow?</label>
-            <input class="form-input" id="nutri-improve" placeholder="Plan meals, drink more water...">
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="saveNutrition()">SAVE</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ WEEKLY REVIEW ═══ -->
-    <div id="sec-review" class="section">
-      <div class="week-nav">
-        <button onclick="changeWeek(-1)">‹</button>
-        <span class="week-label" id="review-week-label">WEEK 1</span>
-        <button onclick="changeWeek(1)">›</button>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h3 class="card-title">BODY PROGRESS</h3>
-          <div class="form-group">
-            <label class="form-label">Weight (kg/lb)</label>
-            <input class="form-input" id="rev-weight" type="number" step="0.1" placeholder="e.g. 85">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Waist (cm/in)</label>
-            <input class="form-input" id="rev-waist" type="number" step="0.1" placeholder="e.g. 95">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Progress photo taken?</label>
-            <select class="form-select" id="rev-photo"><option value="">—</option><option>Yes</option><option>No</option></select>
+          <div class="stat-box">
+            <div class="stat-value" id="s-discipline">—</div>
+            <div class="stat-label">Discipline</div>
           </div>
         </div>
 
-        <div class="card">
-          <h3 class="card-title">WEEKLY SCORES</h3>
-          <div class="form-group">
-            <label class="form-label">Discipline (1–10)</label>
-            <div class="range-group">
-              <input type="range" id="rev-discipline" min="1" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value">
-              <span class="range-value">5</span>
+        <div class="card" style="margin-top:1rem;">
+          <h3 class="card-title">THIS WEEK'S FOCUS</h3>
+          <div class="card-subtitle" id="dash-dates"></div>
+          <div class="checklist" id="dash-focus-list"></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:1rem;">
+          <div class="card">
+            <h3 class="card-title">TRAINING SCHEDULE</h3>
+            <div id="dash-schedule"></div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">QUICK NOTE</h3>
+            <div class="form-group">
+              <textarea class="form-textarea" id="dash-note" placeholder="How are you feeling this week?"></textarea>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Energy (1–10)</label>
-            <div class="range-group">
-              <input type="range" id="rev-energy" min="1" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value">
-              <span class="range-value">5</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Recovery (1–10)</label>
-            <div class="range-group">
-              <input type="range" id="rev-recovery" min="1" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value">
-              <span class="range-value">5</span>
-            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveDashNote()">SAVE NOTE</button>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <h3 class="card-title">REFLECTION</h3>
+      <!-- ═══ TRAINING ═══ -->
+      <div id="sec-training" class="section">
+        <div class="day-pills" id="training-days"></div>
+        <div id="training-content"></div>
+      </div>
+
+      <!-- ═══ HABITS ═══ -->
+      <div id="sec-habits" class="section">
+        <div class="card">
+          <h3 class="card-title">DAILY HABIT TRACKER</h3>
+          <div class="card-subtitle">Toggle each habit for each day of the week</div>
+          <div class="habit-week-grid" id="habit-grid"></div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3 class="card-title">WATER TRACKER — TODAY</h3>
+          <div class="card-subtitle">Tap glasses to log water intake (each glass ≈ 250ml)</div>
+          <div class="water-glasses" id="water-glasses"></div>
+          <div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-dim);">
+            Total: <strong id="water-total" style="color:var(--white);">0ml</strong> / goal: 2000ml+
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ NUTRITION ═══ -->
+      <div id="sec-nutrition" class="section">
+        <div class="day-pills" id="nutrition-days"></div>
+        <div class="card" id="nutrition-content">
+          <h3 class="card-title">FOOD DISCIPLINE — <span id="nutri-day-label">TODAY</span></h3>
+          <div class="checklist" id="nutri-checklist"></div>
+          <div style="margin-top:1.5rem;">
+            <h4 style="font-size:1.1rem;color:var(--white);margin-bottom:0.75rem;">DAILY REFLECTION</h4>
+            <div class="form-group">
+              <label class="form-label">Did I eat less than usual?</label>
+              <select class="form-select" id="nutri-less">
+                <option value="">—</option>
+                <option>Yes</option>
+                <option>Mostly</option>
+                <option>No</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Did I lose control with food?</label>
+              <select class="form-select" id="nutri-control">
+                <option value="">—</option>
+                <option>No</option>
+                <option>A little</option>
+                <option>Yes</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">What triggered it?</label>
+              <input class="form-input" id="nutri-trigger" placeholder="Stress, boredom, habit...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">What can I improve tomorrow?</label>
+              <input class="form-input" id="nutri-improve" placeholder="Plan meals, drink more water...">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveNutrition()">SAVE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ WEEKLY REVIEW ═══ -->
+      <div id="sec-review" class="section">
+        <div class="week-nav">
+          <button onclick="changeWeek(-1)">‹</button>
+          <span class="week-label" id="review-week-label">WEEK 1</span>
+          <button onclick="changeWeek(1)">›</button>
+        </div>
+
         <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label">What improved this week</label>
-            <textarea class="form-textarea" id="rev-improved" placeholder="Stamina, consistency, technique..."></textarea>
+          <div class="card">
+            <h3 class="card-title">BODY PROGRESS</h3>
+            <div class="form-group">
+              <label class="form-label">Weight (kg/lb)</label>
+              <input class="form-input" id="rev-weight" type="number" step="0.1" placeholder="e.g. 85">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Waist (cm/in)</label>
+              <input class="form-input" id="rev-waist" type="number" step="0.1" placeholder="e.g. 95">
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">What was hardest</label>
-            <textarea class="form-textarea" id="rev-hardest" placeholder="Early mornings, diet..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">What I learned</label>
-            <textarea class="form-textarea" id="rev-learned" placeholder="About my body, technique, discipline..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">What to improve next week</label>
-            <textarea class="form-textarea" id="rev-next" placeholder="Sleep more, better nutrition..."></textarea>
+
+          <div class="card">
+            <h3 class="card-title">WEEKLY SCORES</h3>
+            <div class="form-group">
+              <label class="form-label">Discipline (1–10)</label>
+              <div class="range-group">
+                <input type="range" id="rev-discipline" min="1" max="10" value="5"
+                  oninput="this.nextElementSibling.textContent=this.value">
+                <span class="range-value">5</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Energy (1–10)</label>
+              <div class="range-group">
+                <input type="range" id="rev-energy" min="1" max="10" value="5"
+                  oninput="this.nextElementSibling.textContent=this.value">
+                <span class="range-value">5</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Recovery (1–10)</label>
+              <div class="range-group">
+                <input type="range" id="rev-recovery" min="1" max="10" value="5"
+                  oninput="this.nextElementSibling.textContent=this.value">
+                <span class="range-value">5</span>
+              </div>
+            </div>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="saveReview()" style="margin-top:0.5rem;">SAVE WEEKLY REVIEW</button>
-      </div>
-    </div>
 
-    <!-- ═══ PROGRESS ═══ -->
-    <div id="sec-progress" class="section">
-      <div class="card">
-        <h3 class="card-title">12-WEEK CHALLENGE</h3>
-        <div class="card-subtitle">Your mission: lose weight, build discipline, train Muay Thai seriously</div>
-        <div style="margin:1rem 0;">
-          <div class="progress-bar" style="height:12px;">
-            <div class="progress-fill" id="prog-bar" style="width:0%;"></div>
+        <div class="card">
+          <h3 class="card-title">PROGRESS PHOTOS</h3>
+          <div class="card-subtitle">Upload 3 photos each week to visually track your transformation</div>
+          <div class="photo-uploads" id="photo-uploads" style="margin-top:1rem;">
+            <div class="photo-slot" onclick="triggerPhotoUpload('front')" id="slot-front">
+              <div class="photo-placeholder"><span class="photo-icon">📸</span>Tap to upload</div>
+              <div class="photo-label">FRONT</div>
+            </div>
+            <div class="photo-slot" onclick="triggerPhotoUpload('side')" id="slot-side">
+              <div class="photo-placeholder"><span class="photo-icon">📸</span>Tap to upload</div>
+              <div class="photo-label">SIDE</div>
+            </div>
+            <div class="photo-slot" onclick="triggerPhotoUpload('back')" id="slot-back">
+              <div class="photo-placeholder"><span class="photo-icon">📸</span>Tap to upload</div>
+              <div class="photo-label">BACK</div>
+            </div>
           </div>
-          <div style="display:flex;justify-content:space-between;margin-top:0.4rem;font-size:0.8rem;color:var(--text-dim);">
-            <span>Week <span id="prog-current">1</span></span>
-            <span>Week 12</span>
+          <input type="file" id="photo-input" accept="image/*" style="display:none;">
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">REFLECTION</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">What improved this week</label>
+              <textarea class="form-textarea" id="rev-improved"
+                placeholder="Stamina, consistency, technique..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">What was hardest</label>
+              <textarea class="form-textarea" id="rev-hardest" placeholder="Early mornings, diet..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">What I learned</label>
+              <textarea class="form-textarea" id="rev-learned"
+                placeholder="About my body, technique, discipline..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">What to improve next week</label>
+              <textarea class="form-textarea" id="rev-next" placeholder="Sleep more, better nutrition..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveReview()" style="margin-top:0.5rem;">SAVE WEEKLY REVIEW</button>
+        </div>
+      </div>
+
+      <!-- ═══ PROGRESS ═══ -->
+      <div id="sec-progress" class="section">
+        <div class="card">
+          <h3 class="card-title">12-WEEK CHALLENGE</h3>
+          <div class="card-subtitle">Your mission: lose weight, build discipline, train Muay Thai seriously</div>
+          <div style="margin:1rem 0;">
+            <div class="progress-bar" style="height:12px;">
+              <div class="progress-fill" id="prog-bar" style="width:0%;"></div>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;margin-top:0.4rem;font-size:0.8rem;color:var(--text-dim);">
+              <span>Week <span id="prog-current">1</span></span>
+              <span>Week 12</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">WEIGHT TREND</h3>
+          <div id="weight-chart" style="display:flex;align-items:flex-end;gap:4px;height:200px;padding-top:1rem;"></div>
+          <div id="weight-labels" style="display:flex;gap:4px;margin-top:0.3rem;"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">PHOTO TIMELINE</h3>
+          <div class="card-subtitle">Your visual transformation week by week — tap any photo to enlarge</div>
+          <div id="photo-gallery" style="margin-top:1rem;"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">WEEKLY COMPLETION</h3>
+          <div id="completion-chart"
+            style="display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:0.5rem;"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">THE RULES</h3>
+          <div class="checklist">
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I do not quit after a bad week</span>
+            </div>
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I focus on consistency, not perfection</span>
+            </div>
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I track progress every week</span>
+            </div>
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I drink more water every day</span>
+            </div>
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I control my portions</span>
+            </div>
+            <div class="check-item checked">
+              <div class="check-box"></div><span class="check-label">I keep showing up</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <h3 class="card-title">WEIGHT TREND</h3>
-        <div id="weight-chart" style="display:flex;align-items:flex-end;gap:4px;height:200px;padding-top:1rem;"></div>
-        <div id="weight-labels" style="display:flex;gap:4px;margin-top:0.3rem;"></div>
-      </div>
+    </div><!-- /content -->
+  </div><!-- /app -->
 
-      <div class="card">
-        <h3 class="card-title">WEEKLY COMPLETION</h3>
-        <div id="completion-chart" style="display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:0.5rem;"></div>
-      </div>
+  <!-- Toast notification -->
+  <div class="toast" id="toast">Saved ✓</div>
 
-      <div class="card">
-        <h3 class="card-title">THE RULES</h3>
-        <div class="checklist">
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I do not quit after a bad week</span></div>
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I focus on consistency, not perfection</span></div>
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I track progress every week</span></div>
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I drink more water every day</span></div>
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I control my portions</span></div>
-          <div class="check-item checked"><div class="check-box"></div><span class="check-label">I keep showing up</span></div>
-        </div>
-      </div>
-    </div>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  </div><!-- /content -->
-</div><!-- /app -->
+    // ═══════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════
+    let db = null;
+    let useLocal = false;
+    let currentWeek = 1;
+    let selectedTrainingDay = 'monday';
+    let selectedNutriDay = 0; // 0=Mon ... 6=Sun
 
-<!-- Toast notification -->
-<div class="toast" id="toast">Saved ✓</div>
+    const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const HABITS = [
+      'Drink enough water',
+      'Eat with control',
+      'Avoid unnecessary snacks',
+      'Move my body',
+      'Sleep with intention',
+      'Stay disciplined'
+    ];
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    const NUTRI_CHECKS = [
+      'Ate with control',
+      'Did not overeat badly',
+      'Avoided unnecessary snacks',
+      'Ate enough protein',
+      'Drank enough water',
+      'No excessive sugary drinks'
+    ];
 
-// ═══════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════
-let db = null;
-let useLocal = false;
-let currentWeek = 1;
-let selectedTrainingDay = 'monday';
-let selectedNutriDay = 0; // 0=Mon ... 6=Sun
+    const TRAINING_DAYS = {
+      monday: {
+        label: 'Monday — Muay Thai',
+        goal: 'Start the week with intensity, focus, and discipline.',
+        checklist: ['Warm-up (5-10 min walk + joint mobility)', 'Jump rope (3 rounds × 30 sec)', 'Technique (stance, guard, jab-cross, teep, kicks)', 'Main Muay Thai session (pads/bag/drills)', 'Conditioning finisher', 'Cooldown / stretching'],
+        notes: ['energyBefore|Energy Before (1-10)|range', 'energyAfter|Energy After (1-10)|range', 'effort|Effort (1-10)|range', 'learned|What I learned today|text', 'hardest|Hardest part|text', 'pain|Any pain or discomfort|text']
+      },
+      wednesday_am: {
+        label: 'Wednesday AM — Conditioning',
+        goal: 'Build endurance, discipline, and body control.',
+        checklist: ['Warm-up (5-10 min brisk walk + mobility)', 'Cardio block (25-35 min walk/treadmill/bike)', 'Squats', 'Incline push-ups', 'Glute bridges', 'Plank + core exercise', 'Mobility (hamstrings, hip flexors, calves, shoulders)', 'Hydration after session'],
+        notes: ['cardioType|Cardio type|text', 'minutes|Minutes completed|number', 'effort|Effort (1-10)|range', 'mood|Mood after|text', 'body|Body felt|text']
+      },
+      wednesday_pm: {
+        label: 'Wednesday PM — Muay Thai',
+        goal: 'Train technique under fatigue, sharpen focus.',
+        checklist: ['Warm-up + mobility', 'Jump rope (3 rounds × 30 sec)', 'Technique review (guard, footwork, combos, kicks)', 'Main Muay Thai session (drills/bag/pads)', 'Cooldown / stretching'],
+        notes: ['energyBefore|Energy Before (1-10)|range', 'energyAfter|Energy After (1-10)|range', 'focus|Focus Level (1-10)|range', 'bestTechnique|Best technique today|text', 'hardTechnique|Most difficult technique|text', 'pain|Any pain or discomfort|text']
+      },
+      saturday_am: {
+        label: 'Saturday AM — Long Session',
+        goal: 'Deep work, longer practice, stronger conditioning.',
+        checklist: ['Extended warm-up (10-15 min)', 'Jump rope (4 rounds × 30-45 sec)', 'Technical drilling (stance, balance, kicks, knees, footwork)', 'Main session (rounds/bag/pads/drills)', 'Conditioning block (core/bag finisher)', 'Long cooldown + walk'],
+        notes: ['duration|Total duration (min)|number', 'rounds|Rounds completed|number', 'effort|Effort (1-10)|range', 'improved|What improved today|text', 'needsWork|What still needs work|text']
+      },
+      saturday_pm: {
+        label: 'Saturday PM — Optional Light',
+        goal: 'Reinforce technique or recover actively.',
+        checklist: ['Light shadowboxing OR walk', 'Stretching', 'Mobility work', 'Technique review'],
+        notes: ['whatDid|What I did|text', 'duration|Duration (min)|number', 'bodyFelt|How my body felt|text', 'helpful|Was this helpful?|select|Yes,No']
+      },
+      sunday: {
+        label: 'Sunday — Recovery & Reset',
+        goal: 'Recover, reset, prepare for next week.',
+        checklist: ['40-60 min walk', 'Stretching / mobility', 'Hydrate well', 'Review the week', 'Prepare mentally for Monday'],
+        notes: ['walkDuration|Walk duration (min)|number', 'stretched|Stretching completed|select|Yes,No', 'bodyFeeling|Body feeling (1-10)|range', 'mentalState|Mental state|text', 'readiness|How ready for next week|text']
+      }
+    };
 
-const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const DAY_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const HABITS = [
-  'Drink enough water',
-  'Eat with control',
-  'Avoid unnecessary snacks',
-  'Move my body',
-  'Sleep with intention',
-  'Stay disciplined'
-];
+    // ═══════════════════════════════════════
+    // FIREBASE / STORAGE
+    // ═══════════════════════════════════════
+    function lsKey(path) { return `mt_${path}`; }
 
-const NUTRI_CHECKS = [
-  'Ate with control',
-  'Did not overeat badly',
-  'Avoided unnecessary snacks',
-  'Ate enough protein',
-  'Drank enough water',
-  'No excessive sugary drinks'
-];
-
-const TRAINING_DAYS = {
-  monday: {
-    label: 'Monday — Muay Thai',
-    goal: 'Start the week with intensity, focus, and discipline.',
-    checklist: ['Warm-up (5-10 min walk + joint mobility)', 'Jump rope (3 rounds × 30 sec)', 'Technique (stance, guard, jab-cross, teep, kicks)', 'Main Muay Thai session (pads/bag/drills)', 'Conditioning finisher', 'Cooldown / stretching'],
-    notes: ['energyBefore|Energy Before (1-10)|range', 'energyAfter|Energy After (1-10)|range', 'effort|Effort (1-10)|range', 'learned|What I learned today|text', 'hardest|Hardest part|text', 'pain|Any pain or discomfort|text']
-  },
-  wednesday_am: {
-    label: 'Wednesday AM — Conditioning',
-    goal: 'Build endurance, discipline, and body control.',
-    checklist: ['Warm-up (5-10 min brisk walk + mobility)', 'Cardio block (25-35 min walk/treadmill/bike)', 'Squats', 'Incline push-ups', 'Glute bridges', 'Plank + core exercise', 'Mobility (hamstrings, hip flexors, calves, shoulders)', 'Hydration after session'],
-    notes: ['cardioType|Cardio type|text', 'minutes|Minutes completed|number', 'effort|Effort (1-10)|range', 'mood|Mood after|text', 'body|Body felt|text']
-  },
-  wednesday_pm: {
-    label: 'Wednesday PM — Muay Thai',
-    goal: 'Train technique under fatigue, sharpen focus.',
-    checklist: ['Warm-up + mobility', 'Jump rope (3 rounds × 30 sec)', 'Technique review (guard, footwork, combos, kicks)', 'Main Muay Thai session (drills/bag/pads)', 'Cooldown / stretching'],
-    notes: ['energyBefore|Energy Before (1-10)|range', 'energyAfter|Energy After (1-10)|range', 'focus|Focus Level (1-10)|range', 'bestTechnique|Best technique today|text', 'hardTechnique|Most difficult technique|text', 'pain|Any pain or discomfort|text']
-  },
-  saturday_am: {
-    label: 'Saturday AM — Long Session',
-    goal: 'Deep work, longer practice, stronger conditioning.',
-    checklist: ['Extended warm-up (10-15 min)', 'Jump rope (4 rounds × 30-45 sec)', 'Technical drilling (stance, balance, kicks, knees, footwork)', 'Main session (rounds/bag/pads/drills)', 'Conditioning block (core/bag finisher)', 'Long cooldown + walk'],
-    notes: ['duration|Total duration (min)|number', 'rounds|Rounds completed|number', 'effort|Effort (1-10)|range', 'improved|What improved today|text', 'needsWork|What still needs work|text']
-  },
-  saturday_pm: {
-    label: 'Saturday PM — Optional Light',
-    goal: 'Reinforce technique or recover actively.',
-    checklist: ['Light shadowboxing OR walk', 'Stretching', 'Mobility work', 'Technique review'],
-    notes: ['whatDid|What I did|text', 'duration|Duration (min)|number', 'bodyFelt|How my body felt|text', 'helpful|Was this helpful?|select|Yes,No']
-  },
-  sunday: {
-    label: 'Sunday — Recovery & Reset',
-    goal: 'Recover, reset, prepare for next week.',
-    checklist: ['40-60 min walk', 'Stretching / mobility', 'Hydrate well', 'Review the week', 'Prepare mentally for Monday'],
-    notes: ['walkDuration|Walk duration (min)|number', 'stretched|Stretching completed|select|Yes,No', 'bodyFeeling|Body feeling (1-10)|range', 'mentalState|Mental state|text', 'readiness|How ready for next week|text']
-  }
-};
-
-// ═══════════════════════════════════════
-// FIREBASE / STORAGE
-// ═══════════════════════════════════════
-function lsKey(path) { return `mt_${path}`; }
-
-async function saveData(path, data) {
-  if (useLocal) {
-    localStorage.setItem(lsKey(path), JSON.stringify(data));
-    return;
-  }
-  try {
-    await setDoc(doc(db, ...path.split('/')), data, { merge: true });
-  } catch(e) { console.error('Save error:', e); }
-}
-
-async function loadData(path) {
-  if (useLocal) {
-    const d = localStorage.getItem(lsKey(path));
-    return d ? JSON.parse(d) : null;
-  }
-  try {
-    const snap = await getDoc(doc(db, ...path.split('/')));
-    return snap.exists() ? snap.data() : null;
-  } catch(e) { console.error('Load error:', e); return null; }
-}
-
-async function loadCollection(collPath) {
-  if (useLocal) {
-    const results = {};
-    const prefix = lsKey(collPath + '/');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith(prefix)) {
-        const id = key.slice(prefix.length);
-        results[id] = JSON.parse(localStorage.getItem(key));
+    async function saveData(path, data) {
+      if (useLocal) {
+        localStorage.setItem(lsKey(path), JSON.stringify(data));
+        return;
+      }
+      try {
+        await setDoc(doc(db, ...path.split('/')), data, { merge: true });
+      } catch (e) {
+        console.error('Save error:', e);
+        if (e.code === 'permission-denied') {
+          toast('⛔ Firestore rules are blocking writes. Update your security rules!');
+        } else {
+          toast('❌ Save failed: ' + (e.message || e.code));
+        }
       }
     }
-    return results;
+
+    async function loadData(path) {
+      if (useLocal) {
+        const d = localStorage.getItem(lsKey(path));
+        return d ? JSON.parse(d) : null;
+      }
+      try {
+        const snap = await getDoc(doc(db, ...path.split('/')));
+        return snap.exists() ? snap.data() : null;
+      } catch (e) {
+        console.error('Load error:', e);
+        if (e.code === 'permission-denied') {
+          toast('⛔ Firestore rules are blocking reads. Update your security rules!');
+        }
+        return null;
+      }
+    }
+
+    async function loadCollection(collPath) {
+      if (useLocal) {
+        const results = {};
+        const prefix = lsKey(collPath + '/');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith(prefix)) {
+            const id = key.slice(prefix.length);
+            results[id] = JSON.parse(localStorage.getItem(key));
+          }
+        }
+        return results;
+      }
+      try {
+        const snap = await getDocs(collection(db, collPath));
+        const results = {};
+        snap.forEach(d => { results[d.id] = d.data(); });
+        return results;
+      } catch (e) { console.error('Load collection error:', e); return {}; }
+    }
+
+    // ═══════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════
+    window.connectFirebase = async function () {
+      const raw = document.getElementById('firebase-config').value.trim();
+      const errEl = document.getElementById('setup-error');
+      try {
+        const config = JSON.parse(raw);
+        if (!config.apiKey || !config.projectId) throw new Error('Missing apiKey or projectId');
+        const app = initializeApp(config);
+        db = getFirestore(app);
+
+        // Test write to verify rules allow access
+        try {
+          await setDoc(doc(db, 'meta', 'connectionTest'), { connectedAt: Date.now(), status: 'ok' });
+        } catch (testErr) {
+          if (testErr.code === 'permission-denied') {
+            errEl.innerHTML = `<strong>Firebase connected but Firestore rules are blocking writes.</strong><br><br>
+          Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--red);">Firebase Console</a> → Firestore Database → Rules, and set:<br><br>
+          <code style="background:#1a1a1a;padding:0.5rem;display:block;margin:0.5rem 0;border-radius:4px;font-size:0.8rem;white-space:pre;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
   }
-  try {
-    const snap = await getDocs(collection(db, collPath));
-    const results = {};
-    snap.forEach(d => { results[d.id] = d.data(); });
-    return results;
-  } catch(e) { console.error('Load collection error:', e); return {}; }
-}
+}</code>
+          <br>Then click <strong>Publish</strong> and try connecting again.`;
+            errEl.style.display = 'block';
+            db = null;
+            return;
+          }
+          throw testErr;
+        }
 
-// ═══════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════
-window.connectFirebase = async function() {
-  const raw = document.getElementById('firebase-config').value.trim();
-  const errEl = document.getElementById('setup-error');
-  try {
-    const config = JSON.parse(raw);
-    if (!config.apiKey || !config.projectId) throw new Error('Missing apiKey or projectId');
-    const app = initializeApp(config);
-    db = getFirestore(app);
-    errEl.style.display = 'none';
-    launchApp();
-  } catch(e) {
-    errEl.textContent = 'Invalid config: ' + e.message;
-    errEl.style.display = 'block';
-  }
-};
+        errEl.style.display = 'none';
+        launchApp();
+      } catch (e) {
+        errEl.textContent = 'Connection failed: ' + e.message;
+        errEl.style.display = 'block';
+      }
+    };
 
-window.startLocal = function() {
-  useLocal = true;
-  launchApp();
-};
+    window.startLocal = function () {
+      useLocal = true;
+      launchApp();
+    };
 
-function launchApp() {
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  initTabs();
-  renderDashboard();
-  renderTraining();
-  renderHabits();
-  renderNutritionDays();
-  renderNutrition();
-  renderReview();
-  renderProgress();
-}
+    function launchApp() {
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
 
-// ═══════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════
-function initTabs() {
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
-      document.getElementById('sec-' + t.dataset.tab).classList.add('active');
-    });
-  });
-}
+      // Show connection status
+      const statusEl = document.getElementById('fb-status');
+      if (useLocal) {
+        statusEl.innerHTML = '<span style="width:8px;height:8px;background:var(--amber);border-radius:50%;display:inline-block;"></span><span style="color:var(--text-muted);">Local</span>';
+      } else {
+        statusEl.innerHTML = '<span style="width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;"></span><span style="color:var(--text-muted);">Firebase</span>';
+      }
 
-// ═══════════════════════════════════════
-// WEEK HELPERS
-// ═══════════════════════════════════════
-function getWeekDates(week) {
-  const start = new Date('2026-03-09'); // Week 1 starts today
-  start.setDate(start.getDate() + (week - 1) * 7);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return { start, end };
-}
+      initTabs();
+      renderDashboard();
+      renderTraining();
+      renderHabits();
+      renderNutritionDays();
+      renderNutrition();
+      renderReview();
+      renderProgress();
+    }
 
-function fmtDate(d) {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+    // ═══════════════════════════════════════
+    // TABS
+    // ═══════════════════════════════════════
+    function initTabs() {
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+          document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+        });
+      });
+    }
 
-function dateKey(week, dayIndex) {
-  const { start } = getWeekDates(week);
-  const d = new Date(start);
-  d.setDate(d.getDate() + dayIndex);
-  return d.toISOString().slice(0, 10);
-}
+    // ═══════════════════════════════════════
+    // WEEK HELPERS
+    // ═══════════════════════════════════════
+    function getWeekDates(week) {
+      const start = new Date('2026-03-09'); // Week 1 starts today
+      start.setDate(start.getDate() + (week - 1) * 7);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      return { start, end };
+    }
 
-window.changeWeek = function(delta) {
-  currentWeek = Math.max(1, Math.min(12, currentWeek + delta));
-  document.getElementById('current-week-badge').textContent = `WEEK ${currentWeek} OF 12`;
-  renderDashboard();
-  renderHabits();
-  renderReview();
-  renderProgress();
-};
+    function fmtDate(d) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
 
-// ═══════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════
-function toast(msg = 'Saved ✓') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
-}
+    function dateKey(week, dayIndex) {
+      const { start } = getWeekDates(week);
+      const d = new Date(start);
+      d.setDate(d.getDate() + dayIndex);
+      return d.toISOString().slice(0, 10);
+    }
 
-// ═══════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════
-async function renderDashboard() {
-  const { start, end } = getWeekDates(currentWeek);
-  document.getElementById('dash-week-label').textContent = `WEEK ${currentWeek}`;
-  document.getElementById('dash-dates').textContent = `${fmtDate(start)} — ${fmtDate(end)}`;
+    window.changeWeek = function (delta) {
+      currentWeek = Math.max(1, Math.min(12, currentWeek + delta));
+      document.getElementById('current-week-badge').textContent = `WEEK ${currentWeek} OF 12`;
+      renderDashboard();
+      renderHabits();
+      renderReview();
+      renderProgress();
+    };
 
-  // Week focus
-  const focusItems = [
-    'Attend all main training sessions',
-    'Eat with more control',
-    'Drink more water every day',
-    'Improve energy and recovery',
-    'Stay consistent, not perfect'
-  ];
+    // ═══════════════════════════════════════
+    // TOAST
+    // ═══════════════════════════════════════
+    function toast(msg = 'Saved ✓') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      const isError = msg.includes('⛔') || msg.includes('❌');
+      t.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+      t.style.color = isError ? 'var(--red)' : 'var(--green)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), isError ? 5000 : 2000);
+    }
 
-  const focusData = await loadData(`weekFocus/w${currentWeek}`) || {};
-  const focusList = document.getElementById('dash-focus-list');
-  focusList.innerHTML = focusItems.map((item, i) => {
-    const checked = focusData[`f${i}`] ? 'checked' : '';
-    return `<div class="check-item ${checked}" onclick="toggleFocus(${i}, this)">
+    // ═══════════════════════════════════════
+    // DASHBOARD
+    // ═══════════════════════════════════════
+    async function renderDashboard() {
+      const { start, end } = getWeekDates(currentWeek);
+      document.getElementById('dash-week-label').textContent = `WEEK ${currentWeek}`;
+      document.getElementById('dash-dates').textContent = `${fmtDate(start)} — ${fmtDate(end)}`;
+
+      // Week focus
+      const focusItems = [
+        'Attend all main training sessions',
+        'Eat with more control',
+        'Drink more water every day',
+        'Improve energy and recovery',
+        'Stay consistent, not perfect'
+      ];
+
+      const focusData = await loadData(`weekFocus/w${currentWeek}`) || {};
+      const focusList = document.getElementById('dash-focus-list');
+      focusList.innerHTML = focusItems.map((item, i) => {
+        const checked = focusData[`f${i}`] ? 'checked' : '';
+        return `<div class="check-item ${checked}" onclick="toggleFocus(${i}, this)">
       <div class="check-box"></div>
       <span class="check-label">${item}</span>
     </div>`;
-  }).join('');
+      }).join('');
 
-  // Schedule
-  const schedule = [
-    { day: 'MON PM', label: 'Muay Thai', key: 'monday' },
-    { day: 'WED AM', label: 'Conditioning', key: 'wednesday_am' },
-    { day: 'WED PM', label: 'Muay Thai', key: 'wednesday_pm' },
-    { day: 'SAT AM', label: 'Long Session', key: 'saturday_am' },
-    { day: 'SAT PM', label: 'Optional Light', key: 'saturday_pm' },
-    { day: 'SUN', label: 'Recovery + Reset', key: 'sunday' },
-  ];
+      // Schedule
+      const schedule = [
+        { day: 'MON PM', label: 'Muay Thai', key: 'monday' },
+        { day: 'WED AM', label: 'Conditioning', key: 'wednesday_am' },
+        { day: 'WED PM', label: 'Muay Thai', key: 'wednesday_pm' },
+        { day: 'SAT AM', label: 'Long Session', key: 'saturday_am' },
+        { day: 'SAT PM', label: 'Optional Light', key: 'saturday_pm' },
+        { day: 'SUN', label: 'Recovery + Reset', key: 'sunday' },
+      ];
 
-  const scheduleEl = document.getElementById('dash-schedule');
-  let sessionsCompleted = 0;
-  let scheduleHTML = '';
+      const scheduleEl = document.getElementById('dash-schedule');
+      let sessionsCompleted = 0;
+      let scheduleHTML = '';
 
-  for (const s of schedule) {
-    const data = await loadData(`training/w${currentWeek}_${s.key}`);
-    const done = data && data.checklist && Object.values(data.checklist).some(v => v);
-    if (done) sessionsCompleted++;
-    scheduleHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+      for (const s of schedule) {
+        const data = await loadData(`training/w${currentWeek}_${s.key}`);
+        const done = data && data.checklist && Object.values(data.checklist).some(v => v);
+        if (done) sessionsCompleted++;
+        scheduleHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
       <div>
         <span style="font-family:'Bebas Neue';color:${done ? 'var(--green)' : 'var(--text-dim)'};margin-right:0.5rem;">${s.day}</span>
         <span style="color:var(--text);font-size:0.9rem;">${s.label}</span>
       </div>
       <span style="color:${done ? 'var(--green)' : 'var(--text-muted)'};">${done ? '✓' : '○'}</span>
     </div>`;
-  }
-  scheduleEl.innerHTML = scheduleHTML;
+      }
+      scheduleEl.innerHTML = scheduleHTML;
 
-  // Stats
-  document.getElementById('s-sessions').textContent = `${sessionsCompleted}/6`;
+      // Stats
+      document.getElementById('s-sessions').textContent = `${sessionsCompleted}/6`;
 
-  // Habit stats
-  const habitData = await loadData(`habits/w${currentWeek}`) || {};
-  let habitTotal = 0, habitChecked = 0;
-  for (let d = 0; d < 7; d++) {
-    for (let h = 0; h < HABITS.length; h++) {
-      habitTotal++;
-      if (habitData[`d${d}h${h}`]) habitChecked++;
+      // Habit stats
+      const habitData = await loadData(`habits/w${currentWeek}`) || {};
+      let habitTotal = 0, habitChecked = 0;
+      for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < HABITS.length; h++) {
+          habitTotal++;
+          if (habitData[`d${d}h${h}`]) habitChecked++;
+        }
+      }
+      document.getElementById('s-habits').textContent = habitTotal ? Math.round(habitChecked / habitTotal * 100) + '%' : '0%';
+
+      // Water days
+      let waterDays = 0;
+      for (let d = 0; d < 7; d++) {
+        const wd = await loadData(`water/${dateKey(currentWeek, d)}`);
+        if (wd && wd.glasses >= 6) waterDays++;
+      }
+      document.getElementById('s-water').textContent = `${waterDays}/7`;
+
+      // Discipline score
+      const review = await loadData(`reviews/w${currentWeek}`);
+      document.getElementById('s-discipline').textContent = review ? review.discipline + '/10' : '—';
+
+      // Note
+      const noteData = await loadData(`notes/w${currentWeek}`);
+      document.getElementById('dash-note').value = noteData ? noteData.text : '';
     }
-  }
-  document.getElementById('s-habits').textContent = habitTotal ? Math.round(habitChecked / habitTotal * 100) + '%' : '0%';
 
-  // Water days
-  let waterDays = 0;
-  for (let d = 0; d < 7; d++) {
-    const wd = await loadData(`water/${dateKey(currentWeek, d)}`);
-    if (wd && wd.glasses >= 6) waterDays++;
-  }
-  document.getElementById('s-water').textContent = `${waterDays}/7`;
+    window.toggleFocus = async function (idx, el) {
+      el.classList.toggle('checked');
+      const data = {};
+      document.querySelectorAll('#dash-focus-list .check-item').forEach((item, i) => {
+        data[`f${i}`] = item.classList.contains('checked');
+      });
+      await saveData(`weekFocus/w${currentWeek}`, data);
+    };
 
-  // Discipline score
-  const review = await loadData(`reviews/w${currentWeek}`);
-  document.getElementById('s-discipline').textContent = review ? review.discipline + '/10' : '—';
+    window.saveDashNote = async function () {
+      await saveData(`notes/w${currentWeek}`, { text: document.getElementById('dash-note').value });
+      toast();
+    };
 
-  // Note
-  const noteData = await loadData(`notes/w${currentWeek}`);
-  document.getElementById('dash-note').value = noteData ? noteData.text : '';
-}
+    // ═══════════════════════════════════════
+    // TRAINING
+    // ═══════════════════════════════════════
+    function renderTraining() {
+      const dayKeys = Object.keys(TRAINING_DAYS);
+      const pillsEl = document.getElementById('training-days');
+      pillsEl.innerHTML = dayKeys.map(k => {
+        const d = TRAINING_DAYS[k];
+        const active = k === selectedTrainingDay ? 'active' : '';
+        return `<div class="day-pill ${active}" onclick="selectTrainingDay('${k}')">${d.label.split('—')[0].trim()}</div>`;
+      }).join('');
+      renderTrainingContent();
+    }
 
-window.toggleFocus = async function(idx, el) {
-  el.classList.toggle('checked');
-  const data = {};
-  document.querySelectorAll('#dash-focus-list .check-item').forEach((item, i) => {
-    data[`f${i}`] = item.classList.contains('checked');
-  });
-  await saveData(`weekFocus/w${currentWeek}`, data);
-};
+    window.selectTrainingDay = function (key) {
+      selectedTrainingDay = key;
+      document.querySelectorAll('#training-days .day-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      renderTrainingContent();
+    };
 
-window.saveDashNote = async function() {
-  await saveData(`notes/w${currentWeek}`, { text: document.getElementById('dash-note').value });
-  toast();
-};
+    async function renderTrainingContent() {
+      const d = TRAINING_DAYS[selectedTrainingDay];
+      const data = await loadData(`training/w${currentWeek}_${selectedTrainingDay}`) || { checklist: {}, notes: {} };
+      const el = document.getElementById('training-content');
 
-// ═══════════════════════════════════════
-// TRAINING
-// ═══════════════════════════════════════
-function renderTraining() {
-  const dayKeys = Object.keys(TRAINING_DAYS);
-  const pillsEl = document.getElementById('training-days');
-  pillsEl.innerHTML = dayKeys.map(k => {
-    const d = TRAINING_DAYS[k];
-    const active = k === selectedTrainingDay ? 'active' : '';
-    return `<div class="day-pill ${active}" onclick="selectTrainingDay('${k}')">${d.label.split('—')[0].trim()}</div>`;
-  }).join('');
-  renderTrainingContent();
-}
-
-window.selectTrainingDay = function(key) {
-  selectedTrainingDay = key;
-  document.querySelectorAll('#training-days .day-pill').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  renderTrainingContent();
-};
-
-async function renderTrainingContent() {
-  const d = TRAINING_DAYS[selectedTrainingDay];
-  const data = await loadData(`training/w${currentWeek}_${selectedTrainingDay}`) || { checklist: {}, notes: {} };
-  const el = document.getElementById('training-content');
-
-  let html = `<div class="card">
+      let html = `<div class="card">
     <h3 class="card-title">${d.label}</h3>
     <div class="card-subtitle">${d.goal}</div>
     <div class="checklist" id="training-checklist">`;
 
-  d.checklist.forEach((item, i) => {
-    const checked = data.checklist[`c${i}`] ? 'checked' : '';
-    html += `<div class="check-item ${checked}" onclick="toggleTraining(${i}, this)">
+      d.checklist.forEach((item, i) => {
+        const checked = data.checklist[`c${i}`] ? 'checked' : '';
+        html += `<div class="check-item ${checked}" onclick="toggleTraining(${i}, this)">
       <div class="check-box"></div>
       <span class="check-label">${item}</span>
     </div>`;
-  });
+      });
 
-  html += `</div><div style="margin-top:1.5rem;"><h4 style="font-size:1.1rem;color:var(--white);margin-bottom:0.75rem;">SESSION NOTES</h4>`;
+      html += `</div><div style="margin-top:1.5rem;"><h4 style="font-size:1.1rem;color:var(--white);margin-bottom:0.75rem;">SESSION NOTES</h4>`;
 
-  d.notes.forEach(n => {
-    const [key, label, type, opts] = n.split('|');
-    const val = data.notes[key] || '';
-    if (type === 'range') {
-      html += `<div class="form-group"><label class="form-label">${label}</label>
+      d.notes.forEach(n => {
+        const [key, label, type, opts] = n.split('|');
+        const val = data.notes[key] || '';
+        if (type === 'range') {
+          html += `<div class="form-group"><label class="form-label">${label}</label>
         <div class="range-group">
           <input type="range" min="1" max="10" value="${val || 5}" id="tn_${key}" oninput="this.nextElementSibling.textContent=this.value">
           <span class="range-value">${val || 5}</span>
         </div></div>`;
-    } else if (type === 'number') {
-      html += `<div class="form-group"><label class="form-label">${label}</label>
+        } else if (type === 'number') {
+          html += `<div class="form-group"><label class="form-label">${label}</label>
         <input class="form-input" type="number" id="tn_${key}" value="${val}" placeholder="0"></div>`;
-    } else if (type === 'select') {
-      const options = opts.split(',');
-      html += `<div class="form-group"><label class="form-label">${label}</label>
+        } else if (type === 'select') {
+          const options = opts.split(',');
+          html += `<div class="form-group"><label class="form-label">${label}</label>
         <select class="form-select" id="tn_${key}"><option value="">—</option>
         ${options.map(o => `<option ${val === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
-    } else {
-      html += `<div class="form-group"><label class="form-label">${label}</label>
+        } else {
+          html += `<div class="form-group"><label class="form-label">${label}</label>
         <input class="form-input" id="tn_${key}" value="${val}" placeholder="..."></div>`;
+        }
+      });
+
+      html += `<button class="btn btn-primary btn-sm" onclick="saveTraining()">SAVE SESSION</button></div></div>`;
+      el.innerHTML = html;
     }
-  });
 
-  html += `<button class="btn btn-primary btn-sm" onclick="saveTraining()">SAVE SESSION</button></div></div>`;
-  el.innerHTML = html;
-}
+    window.toggleTraining = async function (idx, el) {
+      el.classList.toggle('checked');
+    };
 
-window.toggleTraining = async function(idx, el) {
-  el.classList.toggle('checked');
-};
+    window.saveTraining = async function () {
+      const d = TRAINING_DAYS[selectedTrainingDay];
+      const checklist = {};
+      document.querySelectorAll('#training-checklist .check-item').forEach((item, i) => {
+        checklist[`c${i}`] = item.classList.contains('checked');
+      });
+      const notes = {};
+      d.notes.forEach(n => {
+        const key = n.split('|')[0];
+        const el = document.getElementById('tn_' + key);
+        if (el) notes[key] = el.value;
+      });
+      await saveData(`training/w${currentWeek}_${selectedTrainingDay}`, { checklist, notes, timestamp: Date.now() });
+      toast('Session saved ✓');
+      renderDashboard();
+    };
 
-window.saveTraining = async function() {
-  const d = TRAINING_DAYS[selectedTrainingDay];
-  const checklist = {};
-  document.querySelectorAll('#training-checklist .check-item').forEach((item, i) => {
-    checklist[`c${i}`] = item.classList.contains('checked');
-  });
-  const notes = {};
-  d.notes.forEach(n => {
-    const key = n.split('|')[0];
-    const el = document.getElementById('tn_' + key);
-    if (el) notes[key] = el.value;
-  });
-  await saveData(`training/w${currentWeek}_${selectedTrainingDay}`, { checklist, notes, timestamp: Date.now() });
-  toast('Session saved ✓');
-  renderDashboard();
-};
+    // ═══════════════════════════════════════
+    // HABITS
+    // ═══════════════════════════════════════
+    async function renderHabits() {
+      const data = await loadData(`habits/w${currentWeek}`) || {};
+      const grid = document.getElementById('habit-grid');
 
-// ═══════════════════════════════════════
-// HABITS
-// ═══════════════════════════════════════
-async function renderHabits() {
-  const data = await loadData(`habits/w${currentWeek}`) || {};
-  const grid = document.getElementById('habit-grid');
+      let html = '<div class="hw-header"></div>';
+      DAYS.forEach(d => { html += `<div class="hw-header">${d}</div>`; });
 
-  let html = '<div class="hw-header"></div>';
-  DAYS.forEach(d => { html += `<div class="hw-header">${d}</div>`; });
+      HABITS.forEach((habit, h) => {
+        html += `<div class="hw-label">${habit}</div>`;
+        for (let d = 0; d < 7; d++) {
+          const checked = data[`d${d}h${h}`] ? 'checked' : '';
+          html += `<div class="hw-cell ${checked}" onclick="toggleHabit(${d},${h},this)"></div>`;
+        }
+      });
 
-  HABITS.forEach((habit, h) => {
-    html += `<div class="hw-label">${habit}</div>`;
-    for (let d = 0; d < 7; d++) {
-      const checked = data[`d${d}h${h}`] ? 'checked' : '';
-      html += `<div class="hw-cell ${checked}" onclick="toggleHabit(${d},${h},this)"></div>`;
+      grid.innerHTML = html;
+
+      // Water glasses for today
+      const today = new Date().toISOString().slice(0, 10);
+      const waterData = await loadData(`water/${today}`) || { glasses: 0 };
+      renderWaterGlasses(waterData.glasses);
     }
-  });
 
-  grid.innerHTML = html;
+    window.toggleHabit = async function (d, h, el) {
+      el.classList.toggle('checked');
+      const data = await loadData(`habits/w${currentWeek}`) || {};
+      data[`d${d}h${h}`] = el.classList.contains('checked');
+      await saveData(`habits/w${currentWeek}`, data);
+      renderDashboard();
+    };
 
-  // Water glasses for today
-  const today = new Date().toISOString().slice(0, 10);
-  const waterData = await loadData(`water/${today}`) || { glasses: 0 };
-  renderWaterGlasses(waterData.glasses);
-}
+    function renderWaterGlasses(filled) {
+      const el = document.getElementById('water-glasses');
+      let html = '';
+      for (let i = 0; i < 10; i++) {
+        const f = i < filled ? 'filled' : '';
+        html += `<div class="water-glass ${f}" onclick="toggleWater(${i})"></div>`;
+      }
+      el.innerHTML = html;
+      document.getElementById('water-total').textContent = (filled * 250) + 'ml';
+    }
 
-window.toggleHabit = async function(d, h, el) {
-  el.classList.toggle('checked');
-  const data = await loadData(`habits/w${currentWeek}`) || {};
-  data[`d${d}h${h}`] = el.classList.contains('checked');
-  await saveData(`habits/w${currentWeek}`, data);
-  renderDashboard();
-};
+    window.toggleWater = async function (idx) {
+      const today = new Date().toISOString().slice(0, 10);
+      const data = await loadData(`water/${today}`) || { glasses: 0 };
+      data.glasses = data.glasses === idx + 1 ? idx : idx + 1;
+      await saveData(`water/${today}`, data);
+      renderWaterGlasses(data.glasses);
+    };
 
-function renderWaterGlasses(filled) {
-  const el = document.getElementById('water-glasses');
-  let html = '';
-  for (let i = 0; i < 10; i++) {
-    const f = i < filled ? 'filled' : '';
-    html += `<div class="water-glass ${f}" onclick="toggleWater(${i})"></div>`;
-  }
-  el.innerHTML = html;
-  document.getElementById('water-total').textContent = (filled * 250) + 'ml';
-}
+    // ═══════════════════════════════════════
+    // NUTRITION
+    // ═══════════════════════════════════════
+    function renderNutritionDays() {
+      const el = document.getElementById('nutrition-days');
+      el.innerHTML = DAYS.map((d, i) => {
+        const active = i === selectedNutriDay ? 'active' : '';
+        return `<div class="day-pill ${active}" onclick="selectNutriDay(${i})">${d}</div>`;
+      }).join('');
+    }
 
-window.toggleWater = async function(idx) {
-  const today = new Date().toISOString().slice(0, 10);
-  const data = await loadData(`water/${today}`) || { glasses: 0 };
-  data.glasses = data.glasses === idx + 1 ? idx : idx + 1;
-  await saveData(`water/${today}`, data);
-  renderWaterGlasses(data.glasses);
-};
+    window.selectNutriDay = function (idx) {
+      selectedNutriDay = idx;
+      document.querySelectorAll('#nutrition-days .day-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      renderNutrition();
+    };
 
-// ═══════════════════════════════════════
-// NUTRITION
-// ═══════════════════════════════════════
-function renderNutritionDays() {
-  const el = document.getElementById('nutrition-days');
-  el.innerHTML = DAYS.map((d, i) => {
-    const active = i === selectedNutriDay ? 'active' : '';
-    return `<div class="day-pill ${active}" onclick="selectNutriDay(${i})">${d}</div>`;
-  }).join('');
-}
+    async function renderNutrition() {
+      const dk = dateKey(currentWeek, selectedNutriDay);
+      const data = await loadData(`nutrition/${dk}`) || { checks: {}, reflection: {} };
+      document.getElementById('nutri-day-label').textContent = DAY_FULL[selectedNutriDay].toUpperCase();
 
-window.selectNutriDay = function(idx) {
-  selectedNutriDay = idx;
-  document.querySelectorAll('#nutrition-days .day-pill').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  renderNutrition();
-};
-
-async function renderNutrition() {
-  const dk = dateKey(currentWeek, selectedNutriDay);
-  const data = await loadData(`nutrition/${dk}`) || { checks: {}, reflection: {} };
-  document.getElementById('nutri-day-label').textContent = DAY_FULL[selectedNutriDay].toUpperCase();
-
-  const cl = document.getElementById('nutri-checklist');
-  cl.innerHTML = NUTRI_CHECKS.map((item, i) => {
-    const checked = data.checks[`n${i}`] ? 'checked' : '';
-    return `<div class="check-item ${checked}" onclick="toggleNutriCheck(${i}, this)">
+      const cl = document.getElementById('nutri-checklist');
+      cl.innerHTML = NUTRI_CHECKS.map((item, i) => {
+        const checked = data.checks[`n${i}`] ? 'checked' : '';
+        return `<div class="check-item ${checked}" onclick="toggleNutriCheck(${i}, this)">
       <div class="check-box"></div>
       <span class="check-label">${item}</span>
     </div>`;
-  }).join('');
+      }).join('');
 
-  const r = data.reflection || {};
-  document.getElementById('nutri-less').value = r.less || '';
-  document.getElementById('nutri-control').value = r.control || '';
-  document.getElementById('nutri-trigger').value = r.trigger || '';
-  document.getElementById('nutri-improve').value = r.improve || '';
-}
+      const r = data.reflection || {};
+      document.getElementById('nutri-less').value = r.less || '';
+      document.getElementById('nutri-control').value = r.control || '';
+      document.getElementById('nutri-trigger').value = r.trigger || '';
+      document.getElementById('nutri-improve').value = r.improve || '';
+    }
 
-window.toggleNutriCheck = function(idx, el) { el.classList.toggle('checked'); };
+    window.toggleNutriCheck = function (idx, el) { el.classList.toggle('checked'); };
 
-window.saveNutrition = async function() {
-  const dk = dateKey(currentWeek, selectedNutriDay);
-  const checks = {};
-  document.querySelectorAll('#nutri-checklist .check-item').forEach((item, i) => {
-    checks[`n${i}`] = item.classList.contains('checked');
-  });
-  const reflection = {
-    less: document.getElementById('nutri-less').value,
-    control: document.getElementById('nutri-control').value,
-    trigger: document.getElementById('nutri-trigger').value,
-    improve: document.getElementById('nutri-improve').value,
-  };
-  await saveData(`nutrition/${dk}`, { checks, reflection });
-  toast();
-};
+    window.saveNutrition = async function () {
+      const dk = dateKey(currentWeek, selectedNutriDay);
+      const checks = {};
+      document.querySelectorAll('#nutri-checklist .check-item').forEach((item, i) => {
+        checks[`n${i}`] = item.classList.contains('checked');
+      });
+      const reflection = {
+        less: document.getElementById('nutri-less').value,
+        control: document.getElementById('nutri-control').value,
+        trigger: document.getElementById('nutri-trigger').value,
+        improve: document.getElementById('nutri-improve').value,
+      };
+      await saveData(`nutrition/${dk}`, { checks, reflection });
+      toast();
+    };
 
-// ═══════════════════════════════════════
-// WEEKLY REVIEW
-// ═══════════════════════════════════════
-async function renderReview() {
-  document.getElementById('review-week-label').textContent = `WEEK ${currentWeek} REVIEW`;
-  const data = await loadData(`reviews/w${currentWeek}`) || {};
+    // ═══════════════════════════════════════
+    // WEEKLY REVIEW
+    // ═══════════════════════════════════════
+    let currentPhotoAngle = null;
 
-  document.getElementById('rev-weight').value = data.weight || '';
-  document.getElementById('rev-waist').value = data.waist || '';
-  document.getElementById('rev-photo').value = data.photo || '';
+    async function renderReview() {
+      document.getElementById('review-week-label').textContent = `WEEK ${currentWeek} REVIEW`;
+      const data = await loadData(`reviews/w${currentWeek}`) || {};
 
-  ['discipline','energy','recovery'].forEach(k => {
-    const slider = document.getElementById('rev-' + k);
-    slider.value = data[k] || 5;
-    slider.nextElementSibling.textContent = data[k] || 5;
-  });
+      document.getElementById('rev-weight').value = data.weight || '';
+      document.getElementById('rev-waist').value = data.waist || '';
 
-  document.getElementById('rev-improved').value = data.improved || '';
-  document.getElementById('rev-hardest').value = data.hardest || '';
-  document.getElementById('rev-learned').value = data.learned || '';
-  document.getElementById('rev-next').value = data.next || '';
-}
+      ['discipline', 'energy', 'recovery'].forEach(k => {
+        const slider = document.getElementById('rev-' + k);
+        slider.value = data[k] || 5;
+        slider.nextElementSibling.textContent = data[k] || 5;
+      });
 
-window.saveReview = async function() {
-  const data = {
-    weight: parseFloat(document.getElementById('rev-weight').value) || null,
-    waist: parseFloat(document.getElementById('rev-waist').value) || null,
-    photo: document.getElementById('rev-photo').value,
-    discipline: parseInt(document.getElementById('rev-discipline').value),
-    energy: parseInt(document.getElementById('rev-energy').value),
-    recovery: parseInt(document.getElementById('rev-recovery').value),
-    improved: document.getElementById('rev-improved').value,
-    hardest: document.getElementById('rev-hardest').value,
-    learned: document.getElementById('rev-learned').value,
-    next: document.getElementById('rev-next').value,
-    timestamp: Date.now()
-  };
-  await saveData(`reviews/w${currentWeek}`, data);
-  toast('Review saved ✓');
-  renderDashboard();
-  renderProgress();
-};
+      document.getElementById('rev-improved').value = data.improved || '';
+      document.getElementById('rev-hardest').value = data.hardest || '';
+      document.getElementById('rev-learned').value = data.learned || '';
+      document.getElementById('rev-next').value = data.next || '';
 
-// ═══════════════════════════════════════
-// PROGRESS
-// ═══════════════════════════════════════
-async function renderProgress() {
-  document.getElementById('prog-current').textContent = currentWeek;
-  document.getElementById('prog-bar').style.width = (currentWeek / 12 * 100) + '%';
+      // Render photo slots
+      renderPhotoSlots(data);
+    }
 
-  // Weight chart
-  const chartEl = document.getElementById('weight-chart');
-  const labelsEl = document.getElementById('weight-labels');
-  let weights = [];
-  for (let w = 1; w <= 12; w++) {
-    const r = await loadData(`reviews/w${w}`);
-    weights.push(r && r.weight ? r.weight : null);
-  }
+    async function renderPhotoSlots(reviewData) {
+      const photos = await loadData(`photos/w${currentWeek}`) || {};
+      const angles = ['front', 'side', 'back'];
 
-  const validW = weights.filter(w => w !== null);
-  if (validW.length > 0) {
-    const min = Math.min(...validW) - 2;
-    const max = Math.max(...validW) + 2;
-    const range = max - min || 1;
+      angles.forEach(angle => {
+        const slot = document.getElementById(`slot-${angle}`);
+        const url = photos[angle];
+        if (url) {
+          slot.classList.add('has-photo');
+          slot.innerHTML = `
+        <img src="${url}" alt="${angle}">
+        <div class="photo-overlay">
+          <span style="color:#fff;font-size:0.9rem;font-weight:600;">Tap to replace</span>
+        </div>
+        <div class="photo-label">${angle.toUpperCase()}</div>`;
+        } else {
+          slot.classList.remove('has-photo');
+          slot.innerHTML = `
+        <div class="photo-placeholder"><span class="photo-icon">📸</span>Tap to upload</div>
+        <div class="photo-label">${angle.toUpperCase()}</div>`;
+        }
+      });
+    }
 
-    chartEl.innerHTML = weights.map((w, i) => {
-      if (w === null) return `<div style="flex:1;display:flex;align-items:flex-end;"><div style="width:100%;height:4px;background:var(--border);border-radius:2px;"></div></div>`;
-      const h = ((w - min) / range) * 180 + 20;
-      const color = i < validW.length - 1 ? 'var(--red)' : 'var(--amber)';
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+    window.triggerPhotoUpload = function (angle) {
+      currentPhotoAngle = angle;
+      const input = document.getElementById('photo-input');
+      input.value = '';
+      input.click();
+    };
+
+    // Listen for file selection
+    document.getElementById('photo-input').addEventListener('change', async function (e) {
+      const file = e.target.files[0];
+      if (!file || !currentPhotoAngle) return;
+
+      const angle = currentPhotoAngle;
+      const slot = document.getElementById(`slot-${angle}`);
+
+      // Show spinner
+      slot.innerHTML = `<div class="photo-uploading"><div class="spinner"></div></div><div class="photo-label">${angle.toUpperCase()}</div>`;
+
+      try {
+        // Compress image client-side then store as base64 in Firestore
+        const compressed = await compressImage(file, 800, 0.7);
+
+        // Save directly in Firestore/localStorage
+        const photos = await loadData(`photos/w${currentWeek}`) || {};
+        photos[angle] = compressed;
+        await saveData(`photos/w${currentWeek}`, photos);
+
+        toast(`${angle} photo saved ✓`);
+        renderPhotoSlots();
+        renderProgress();
+      } catch (err) {
+        console.error('Upload error:', err);
+        toast('❌ Save failed: ' + (err.message || err.code));
+        renderPhotoSlots();
+      }
+    });
+
+    // Compress image using canvas — returns a base64 JPEG data URL
+    function compressImage(file, maxWidth = 800, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.onload = () => {
+            // Calculate new dimensions keeping aspect ratio
+            let w = img.width;
+            let h = img.height;
+            if (w > maxWidth) {
+              h = Math.round(h * (maxWidth / w));
+              w = maxWidth;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+
+            // Export as JPEG with compression
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(dataUrl);
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Lightbox
+    window.openLightbox = function (url) {
+      const lb = document.createElement('div');
+      lb.className = 'lightbox';
+      lb.innerHTML = `<img src="${url}">`;
+      lb.onclick = () => lb.remove();
+      document.body.appendChild(lb);
+    };
+
+    window.saveReview = async function () {
+      const data = {
+        weight: parseFloat(document.getElementById('rev-weight').value) || null,
+        waist: parseFloat(document.getElementById('rev-waist').value) || null,
+        discipline: parseInt(document.getElementById('rev-discipline').value),
+        energy: parseInt(document.getElementById('rev-energy').value),
+        recovery: parseInt(document.getElementById('rev-recovery').value),
+        improved: document.getElementById('rev-improved').value,
+        hardest: document.getElementById('rev-hardest').value,
+        learned: document.getElementById('rev-learned').value,
+        next: document.getElementById('rev-next').value,
+        timestamp: Date.now()
+      };
+      await saveData(`reviews/w${currentWeek}`, data);
+      toast('Review saved ✓');
+      renderDashboard();
+      renderProgress();
+    };
+
+    // ═══════════════════════════════════════
+    // PROGRESS
+    // ═══════════════════════════════════════
+    async function renderProgress() {
+      document.getElementById('prog-current').textContent = currentWeek;
+      document.getElementById('prog-bar').style.width = (currentWeek / 12 * 100) + '%';
+
+      // Weight chart
+      const chartEl = document.getElementById('weight-chart');
+      const labelsEl = document.getElementById('weight-labels');
+      let weights = [];
+      for (let w = 1; w <= 12; w++) {
+        const r = await loadData(`reviews/w${w}`);
+        weights.push(r && r.weight ? r.weight : null);
+      }
+
+      const validW = weights.filter(w => w !== null);
+      if (validW.length > 0) {
+        const min = Math.min(...validW) - 2;
+        const max = Math.max(...validW) + 2;
+        const range = max - min || 1;
+
+        chartEl.innerHTML = weights.map((w, i) => {
+          if (w === null) return `<div style="flex:1;display:flex;align-items:flex-end;"><div style="width:100%;height:4px;background:var(--border);border-radius:2px;"></div></div>`;
+          const h = ((w - min) / range) * 180 + 20;
+          const color = i < validW.length - 1 ? 'var(--red)' : 'var(--amber)';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
         <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">${w}</div>
         <div style="width:100%;height:${h}px;background:${color};border-radius:4px 4px 0 0;min-width:8px;"></div>
       </div>`;
-    }).join('');
+        }).join('');
 
-    labelsEl.innerHTML = weights.map((_, i) => `<div style="flex:1;text-align:center;font-size:0.65rem;color:var(--text-muted);">W${i+1}</div>`).join('');
-  } else {
-    chartEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:2rem;">No weight data yet. Add it in Weekly Review.</div>';
-    labelsEl.innerHTML = '';
-  }
+        labelsEl.innerHTML = weights.map((_, i) => `<div style="flex:1;text-align:center;font-size:0.65rem;color:var(--text-muted);">W${i + 1}</div>`).join('');
+      } else {
+        chartEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:2rem;">No weight data yet. Add it in Weekly Review.</div>';
+        labelsEl.innerHTML = '';
+      }
 
-  // Completion chart
-  const compEl = document.getElementById('completion-chart');
-  let compHTML = '';
-  for (let w = 1; w <= 12; w++) {
-    const review = await loadData(`reviews/w${w}`);
-    let score = 0;
-    if (review) {
-      score = Math.round(((review.discipline || 0) + (review.energy || 0) + (review.recovery || 0)) / 3);
-    }
-    const colors = ['#1a1a1a','#991b1b','#991b1b','#b91c1c','#dc2626','#dc2626','#ea580c','#f59e0b','#eab308','#84cc16','#22c55e'];
-    const bg = score > 0 ? colors[score] : 'var(--bg-input)';
-    compHTML += `<div style="aspect-ratio:1;background:${bg};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+      // Completion chart
+      const compEl = document.getElementById('completion-chart');
+      let compHTML = '';
+      for (let w = 1; w <= 12; w++) {
+        const review = await loadData(`reviews/w${w}`);
+        let score = 0;
+        if (review) {
+          score = Math.round(((review.discipline || 0) + (review.energy || 0) + (review.recovery || 0)) / 3);
+        }
+        const colors = ['#1a1a1a', '#991b1b', '#991b1b', '#b91c1c', '#dc2626', '#dc2626', '#ea580c', '#f59e0b', '#eab308', '#84cc16', '#22c55e'];
+        const bg = score > 0 ? colors[score] : 'var(--bg-input)';
+        compHTML += `<div style="aspect-ratio:1;background:${bg};border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
       <span style="font-family:'Bebas Neue';font-size:0.85rem;color:${score > 0 ? '#fff' : 'var(--text-muted)'};">W${w}</span>
       ${score > 0 ? `<span style="font-size:0.6rem;color:rgba(255,255,255,0.7);">${score}/10</span>` : ''}
     </div>`;
-  }
-  compEl.innerHTML = compHTML;
-}
+      }
+      compEl.innerHTML = compHTML;
 
-// ═══════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════
-// Check if local data exists, auto-launch
-if (localStorage.getItem('mt_mode') === 'local') {
-  useLocal = true;
-  launchApp();
-} else if (localStorage.getItem('mt_firebaseConfig')) {
-  try {
-    const config = JSON.parse(localStorage.getItem('mt_firebaseConfig'));
-    const app = initializeApp(config);
-    db = getFirestore(app);
-    launchApp();
-  } catch(e) { /* show setup */ }
-}
+      // Photo gallery timeline
+      const galleryEl = document.getElementById('photo-gallery');
+      let galleryHTML = '';
+      let hasAnyPhotos = false;
 
-// Save mode on connect
-const origConnect = window.connectFirebase;
-window.connectFirebase = async function() {
-  const raw = document.getElementById('firebase-config').value.trim();
-  try {
-    const config = JSON.parse(raw);
-    localStorage.setItem('mt_firebaseConfig', raw);
-    localStorage.setItem('mt_mode', 'firebase');
-  } catch(e) {}
-  await origConnect();
-};
+      for (let w = 1; w <= 12; w++) {
+        const photos = await loadData(`photos/w${w}`);
+        if (photos && (photos.front || photos.side || photos.back)) {
+          hasAnyPhotos = true;
+          const review = await loadData(`reviews/w${w}`);
+          const weightStr = review && review.weight ? ` — ${review.weight} kg` : '';
 
-const origLocal = window.startLocal;
-window.startLocal = function() {
-  localStorage.setItem('mt_mode', 'local');
-  origLocal();
-};
-</script>
+          galleryHTML += `<div style="margin-bottom:0.25rem;">
+        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.5rem;">
+          <span style="font-family:'Bebas Neue';font-size:1.1rem;color:var(--white);">WEEK ${w}${weightStr}</span>
+        </div>
+        <div class="photo-gallery-week">`;
+
+          ['front', 'side', 'back'].forEach(angle => {
+            if (photos[angle]) {
+              galleryHTML += `<img src="${photos[angle]}" alt="Week ${w} ${angle}" onclick="openLightbox('${photos[angle].replace(/'/g, "\\'")}')" style="cursor:pointer;" title="${angle}">`;
+            } else {
+              galleryHTML += `<div class="photo-gallery-empty">${angle}</div>`;
+            }
+          });
+
+          galleryHTML += `</div></div>`;
+        }
+      }
+
+      if (!hasAnyPhotos) {
+        galleryHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">No progress photos yet. Upload them in the Weekly Review tab.</div>';
+      }
+
+      galleryEl.innerHTML = galleryHTML;
+    }
+
+    // ═══════════════════════════════════════
+    // BOOT
+    // ═══════════════════════════════════════
+    async function boot() {
+      if (localStorage.getItem('mt_mode') === 'local') {
+        useLocal = true;
+        launchApp();
+      } else if (localStorage.getItem('mt_firebaseConfig')) {
+        try {
+          const config = JSON.parse(localStorage.getItem('mt_firebaseConfig'));
+          const app = initializeApp(config);
+          db = getFirestore(app);
+          // Test connection silently
+          await setDoc(doc(db, 'meta', 'connectionTest'), { connectedAt: Date.now() });
+          launchApp();
+          toast('🔥 Firebase connected');
+        } catch (e) {
+          console.error('Auto-reconnect failed:', e);
+          // Clear saved config so setup screen shows
+          localStorage.removeItem('mt_firebaseConfig');
+          localStorage.removeItem('mt_mode');
+          // show setup screen (already visible by default)
+        }
+      }
+    }
+    boot();
+
+    // Save config to localStorage on manual connect
+    const origConnect = window.connectFirebase;
+    window.connectFirebase = async function () {
+      const raw = document.getElementById('firebase-config').value.trim();
+      try {
+        const config = JSON.parse(raw);
+        localStorage.setItem('mt_firebaseConfig', raw);
+        localStorage.setItem('mt_mode', 'firebase');
+      } catch (e) { }
+      await origConnect();
+    };
+
+    const origLocal = window.startLocal;
+    window.startLocal = function () {
+      localStorage.setItem('mt_mode', 'local');
+      origLocal();
+    };
+  </script>
 </body>
+
 </html>

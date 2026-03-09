@@ -91,16 +91,19 @@ If you don't want to use Firebase, click **"Use Local Storage Instead"** on the 
 
 The tracker stores data in these collections:
 
-| Collection | Document ID | Description |
-|---|---|---|
-| `meta` | `connectionTest` | Connection verification |
-| `weekFocus` | `w1`, `w2`, ... `w12` | Weekly focus checklist state |
-| `notes` | `w1`, `w2`, ... `w12` | Weekly dashboard notes |
-| `training` | `w1_monday`, `w3_saturday_am`, etc. | Session checklists and notes |
-| `habits` | `w1`, `w2`, ... `w12` | Weekly habit grid (day × habit) |
-| `water` | `2026-03-09`, `2026-03-10`, etc. | Daily water glass count |
-| `nutrition` | `2026-03-09`, `2026-03-10`, etc. | Daily food checklist and reflection |
-| `reviews` | `w1`, `w2`, ... `w12` | Weekly review (weight, scores, reflections) |
+| Collection  | Document ID                         | Description                                              |
+| ----------- | ----------------------------------- | -------------------------------------------------------- |
+| `meta`      | `connectionTest`                    | Connection verification                                  |
+| `weekFocus` | `w1`, `w2`, ... `w12`               | Weekly focus checklist state                             |
+| `notes`     | `w1`, `w2`, ... `w12`               | Weekly dashboard notes                                   |
+| `training`  | `w1_monday`, `w3_saturday_am`, etc. | Session checklists and notes                             |
+| `habits`    | `w1`, `w2`, ... `w12`               | Weekly habit grid (day × habit)                          |
+| `water`     | `2026-03-09`, `2026-03-10`, etc.    | Daily water glass count                                  |
+| `nutrition` | `2026-03-09`, `2026-03-10`, etc.    | Daily food checklist and reflection                      |
+| `reviews`   | `w1`, `w2`, ... `w12`               | Weekly review (weight, scores, reflections)              |
+| `photos`    | `w1`, `w2`, ... `w12`               | Progress photos as compressed base64 (front, side, back) |
+
+Photos are compressed client-side to 800px max width at 70% JPEG quality (~100-150KB each) and stored directly in Firestore as base64 data URLs. No Firebase Storage needed. At 3 photos × 12 weeks ≈ 5MB total — well within Firestore's 1GB free tier.
 
 ---
 
@@ -129,18 +132,21 @@ service cloud.firestore {
 ## Tech Stack
 
 - Vanilla HTML/CSS/JS — no build step
-- Firebase Firestore SDK v10 (loaded via CDN)
+- Firebase Firestore SDK v10 (loaded via CDN) — photos stored as compressed base64
 - Fonts: Bebas Neue + Barlow (Google Fonts)
 - Single file, runs from anywhere
+- Zero cost on Firebase Spark (free) plan
 
 ---
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| "Firestore rules are blocking writes" | Create database in test mode or update rules (see Step 2) |
-| Data not persisting after refresh | Check the top bar for Firebase/Local indicator. If it says Local, your Firebase config may have been cleared |
-| Red toast on every save | Open browser console (F12) to see the full error |
-| Test mode expired | Update Firestore rules to extend or remove the expiration |
-| App shows setup screen after it was working | Firebase config was cleared. Paste it again |
+| Problem                                     | Fix                                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| "Firestore rules are blocking writes"       | Create database in test mode or update rules (see Step 2)                                                         |
+| Photos not saving                           | Photos are compressed and stored in Firestore — check if Firestore write rules are open                           |
+| Data not persisting after refresh           | Check the top bar for Firebase/Local indicator. If it says Local, your Firebase config may have been cleared      |
+| Red toast on every save                     | Open browser console (F12) to see the full error                                                                  |
+| Test mode expired                           | Update Firestore rules to extend or remove the expiration                                                         |
+| App shows setup screen after it was working | Firebase config was cleared. Paste it again                                                                       |
+| Photos look low quality                     | Images are compressed to keep Firestore usage low. 800px wide at 70% JPEG quality is enough for progress tracking |
