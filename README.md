@@ -150,3 +150,11 @@ service cloud.firestore {
 | Test mode expired                           | Update Firestore rules to extend or remove the expiration                                                         |
 | App shows setup screen after it was working | Firebase config was cleared. Paste it again                                                                       |
 | Photos look low quality                     | Images are compressed to keep Firestore usage low. 800px wide at 70% JPEG quality is enough for progress tracking |
+
+## Contributing
+
+Contributions are welcome. Feel free to open an Issue or submit a Pull Request.
+
+## License
+
+MIT License.
