@@ -72,7 +72,7 @@ A 12-week interactive training, nutrition, and habit tracking system connected t
 
 ### Step 4 — Open the Tracker
 
-1. Open `muaythai-tracker.html` in your browser
+1. Open `index.html` in your browser
 2. Paste the Firebase config object into the text area
 3. Click **CONNECT & START**
 4. If the connection is successful, you'll see the dashboard with a green **Firebase** indicator in the top bar
